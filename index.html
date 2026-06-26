@@ -90,6 +90,11 @@
       onclick="toggleFilter('takidashi',this)">
       <span class="dot" style="background:var(--blue)"></span>炊き出し
     </button>
+    <button class="filter-btn active" data-cat="food_drive"
+      style="color:#8B008B;border-color:#8B008B;"
+      onclick="toggleFilter('food_drive',this)">
+      <span class="dot" style="background:#8B008B"></span>フードドライブBOX
+    </button>
     <div class="search-wrap">
       <input id="search" type="text" placeholder="市区町村・拠点名で検索" oninput="doSearch(this.value)" />
     </div>
@@ -129,6 +134,190 @@
 </footer>
 
 <script>
+const fooddrives = [
+  {
+    "id": "fd1",
+    "name": "きよすさくら接骨院",
+    "category": "food_drive",
+    "address": "清須市清洲1-15-5",
+    "city": "清須市",
+    "lat": 35.1989,
+    "lng": 136.8521,
+    "schedule": "要問合せ",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd2",
+    "name": "中日信用金庫 清洲支店",
+    "category": "food_drive",
+    "address": "清須市清洲24-7",
+    "city": "清須市",
+    "lat": 35.1978,
+    "lng": 136.8511,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd3",
+    "name": "中日信用金庫 新川支店・須ヶ口支店",
+    "category": "food_drive",
+    "address": "清須市土器野北中野314-1",
+    "city": "清須市",
+    "lat": 35.1945,
+    "lng": 136.8478,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd4",
+    "name": "中日信用金庫 西枇杷島支店",
+    "category": "food_drive",
+    "address": "清須市西枇杷島大黒9",
+    "city": "清須市",
+    "lat": 35.2012,
+    "lng": 136.8445,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd5",
+    "name": "西春日井農業協同組合 新川支店",
+    "category": "food_drive",
+    "address": "清須市寺野郷前63",
+    "city": "清須市",
+    "lat": 35.1934,
+    "lng": 136.8489,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd6",
+    "name": "西春日井農業協同組合 西枇杷島支店",
+    "category": "food_drive",
+    "address": "清須市西枇杷島町末広1",
+    "city": "清須市",
+    "lat": 35.2023,
+    "lng": 136.8434,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd7",
+    "name": "西春日井農業協同組合 阿原支店",
+    "category": "food_drive",
+    "address": "清須市阿原星の宮66",
+    "city": "清須市",
+    "lat": 35.2056,
+    "lng": 136.8512,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd8",
+    "name": "西春日井農業協同組合 清洲支店",
+    "category": "food_drive",
+    "address": "清須市清洲1丁目15-6",
+    "city": "清須市",
+    "lat": 35.1991,
+    "lng": 136.8523,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd9",
+    "name": "西春日井農業協同組合 春日支店",
+    "category": "food_drive",
+    "address": "清須市春日振形127",
+    "city": "清須市",
+    "lat": 35.1923,
+    "lng": 136.8556,
+    "schedule": "営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd10",
+    "name": "株式会社5r",
+    "category": "food_drive",
+    "address": "清須市西枇杷島町地領2丁目3-13",
+    "city": "清須市",
+    "lat": 35.2034,
+    "lng": 136.8423,
+    "schedule": "要問合せ",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd11",
+    "name": "清須市商工会",
+    "category": "food_drive",
+    "address": "清須市清洲1丁目6-1",
+    "city": "清須市",
+    "lat": 35.1983,
+    "lng": 136.8515,
+    "schedule": "平日営業時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd12",
+    "name": "清須市役所西館3階産業課",
+    "category": "food_drive",
+    "address": "清須市須ヶ口1238",
+    "city": "清須市",
+    "lat": 35.1956,
+    "lng": 136.8467,
+    "schedule": "平日8:30〜17:15",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  },
+  {
+    "id": "fd13",
+    "name": "清洲総合福祉センター",
+    "category": "food_drive",
+    "address": "清須市一場古城640-15",
+    "city": "清須市",
+    "lat": 35.1967,
+    "lng": 136.8498,
+    "schedule": "開館時間内",
+    "conditions": "未開封・賞味期限1ヶ月以上の食品",
+    "contact": "",
+    "last_verified": "2026-06-01",
+    "notes": "フードドライブBOX設置"
+  }
+];
 const foodbanks = [
   {
     "id": "fb1",
@@ -3553,8 +3742,8 @@ const spots = [
   }
 ];
 
-const CAT_COLORS = { food_bank:"#1B4332", kodomo_shokudo:"#E8834A", takidashi:"#2980b9" };
-const CAT_LABELS = { food_bank:"フードバンク", kodomo_shokudo:"こども食堂", takidashi:"炊き出し" };
+const CAT_COLORS = { food_bank:"#1B4332", kodomo_shokudo:"#E8834A", takidashi:"#2980b9", food_drive:"#8B008B" };
+const CAT_LABELS = { food_bank:"フードバンク", kodomo_shokudo:"こども食堂", takidashi:"炊き出し", food_drive:"フードドライブBOX" };
 const STALE_DAYS = 90;
 const today = new Date();
 
@@ -3579,7 +3768,7 @@ function makeIcon(cat, stale) {
 }
 
 const markers = {};
-const activeFilters = { food_bank:true, kodomo_shokudo:true, takidashi:true };
+const activeFilters = { food_bank:true, kodomo_shokudo:true, takidashi:true, food_drive:true };
 let searchWord = '';
 
 spots.forEach(s => {
@@ -3627,7 +3816,27 @@ function applyFilters() {
   Object.entries(markers).forEach(([id, v]) => {
     if (isVisible(v)) map.addLayer(v.marker); else map.removeLayer(v.marker);
   });
-  // フードバンクをspotsに追加
+  // フードドライブをspotsに追加
+fooddrives.forEach(s => {
+  const stale = isStale(s.last_verified);
+  const c = CAT_COLORS[s.category];
+  const popup = `<div style="min-width:190px;font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;">
+    <div class="popup-name">${s.name}</div>
+    <span class="popup-cat" style="background:${c}22;color:${c}">${CAT_LABELS[s.category]}</span>
+    <div class="popup-info">
+      📍 ${s.address}<br>
+      🕐 ${s.schedule}<br>
+      👥 ${s.conditions}<br>
+      ${s.contact ? '📞 '+s.contact : ''}
+      ${s.notes ? '<br>💬 '+s.notes : ''}
+    </div>
+  </div>`;
+  const m = L.marker([s.lat, s.lng], { icon: makeIcon(s.category, stale) })
+    .addTo(map).bindPopup(popup, { maxWidth:260 });
+  markers[s.id] = { marker:m, category:s.category, stale, name:s.name, address:s.address };
+});
+
+// フードバンクをspotsに追加
 foodbanks.forEach(s => {
   const stale = isStale(s.last_verified);
   const c = CAT_COLORS[s.category];
