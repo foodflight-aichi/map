@@ -3870,28 +3870,11 @@ function applyFilters() {
   Object.entries(markers).forEach(([id, v]) => {
     if (isVisible(v)) map.addLayer(v.marker); else map.removeLayer(v.marker);
   });
-  // フードドライブをspotsに追加
-fooddrives.forEach(s => {
-  const stale = isStale(s.last_verified);
-  const c = CAT_COLORS[s.category];
-  const popup = `<div style="min-width:190px;font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;">
-    <div class="popup-name">${s.name}</div>
-    <span class="popup-cat" style="background:${c}22;color:${c}">${CAT_LABELS[s.category]}</span>
-    <div class="popup-info">
-      📍 ${s.address}<br>
-      🕐 ${s.schedule}<br>
-      👥 ${s.conditions}<br>
-      ${s.contact ? '📞 '+s.contact : ''}
-      ${s.notes ? '<br>💬 '+s.notes : ''}
-    </div>
-  </div>`;
-  const m = L.marker([s.lat, s.lng], { icon: makeIcon(s.category, stale) })
-    .addTo(map).bindPopup(popup, { maxWidth:260 });
-  markers[s.id] = { marker:m, category:s.category, stale, name:s.name, address:s.address };
-});
+  updateStats();
+}
 
-// フードバンクをspotsに追加
-foodbanks.forEach(s => {
+// フードドライブ・フードバンクをspotsに追加
+[...fooddrives, ...foodbanks].forEach(s => {
   const stale = isStale(s.last_verified);
   const c = CAT_COLORS[s.category];
   const popup = `<div style="min-width:190px;font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;">
@@ -3912,7 +3895,6 @@ foodbanks.forEach(s => {
 });
 
 updateStats();
-}
 
 function updateStats() {
   const vis = Object.values(markers).filter(v => isVisible(v));
