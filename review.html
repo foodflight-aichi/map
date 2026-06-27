@@ -17,21 +17,26 @@
     .filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid #e0ddd5; background: white; font-size: 13px; cursor: pointer; font-family: inherit; }
     .filter-btn.active { background: #1B4332; color: white; border-color: #1B4332; }
-    .card { background: white; border: 1px solid #e0ddd5; border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
-    .card.承認 { border-left: 4px solid #1B4332; }
-    .card.却下 { border-left: 4px solid #ccc; opacity: .6; }
-    .card.未確認 { border-left: 4px solid #E8834A; }
-    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .card-title a { color: #1a1a1a; text-decoration: none; }
-    .card-title a:hover { text-decoration: underline; }
+    .card {
+      background: white;
+      border: 1px solid #e0ddd5;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 10px;
+      border-left: 4px solid #E8834A;
+    }
+    .card.承認 { border-left-color: #1B4332; }
+    .card.却下 { border-left-color: #ccc; opacity: .5; }
+    .card.未確認 { border-left-color: #E8834A; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a; }
     .card-meta { font-size: 12px; color: #888; margin-bottom: 6px; }
     .card-summary { font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 10px; }
-    .card-actions { display: flex; gap: 8px; }
-    .btn { padding: 5px 14px; border-radius: 16px; border: none; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { padding: 6px 16px; border-radius: 16px; border: none; font-size: 12px; cursor: pointer; font-family: inherit; }
     .btn-approve { background: #1B4332; color: white; }
     .btn-reject { background: #eee; color: #555; }
-    .btn-open { background: #2980b9; color: white; }
-    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-left: 8px; }
+    .btn-open { background: #2980b9; color: white; text-decoration: none; display: inline-block; line-height: 1.8; }
+    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-left: 8px; vertical-align: middle; }
     .status-未確認 { background: #FFF0E8; color: #E8834A; }
     .status-承認 { background: #D8F3DC; color: #1B4332; }
     .status-却下 { background: #eee; color: #888; }
@@ -72,7 +77,6 @@ async function loadData() {
   } catch(e) {
     candidates = [];
   }
-  // ローカルストレージのステータスを適用
   candidates = candidates.map(c => ({
     ...c,
     status: localStorage.getItem('status_' + c.id) || c.status
@@ -93,9 +97,13 @@ function updateStatus(id, status) {
   render();
 }
 
+function openUrl(url) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 function render() {
-  const filtered = currentFilter === '全て' 
-    ? candidates 
+  const filtered = currentFilter === '全て'
+    ? candidates
     : candidates.filter(c => c.status === currentFilter);
 
   document.getElementById('cnt-all').textContent = candidates.length;
@@ -110,17 +118,17 @@ function render() {
   }
 
   container.innerHTML = filtered.map(c => `
-    <div class="card ${c.status}">
+    <div class="card ${c.status}" id="card-${c.id}">
       <div class="card-title">
-        <a href="${c.url}" target="_blank">${c.title}</a>
+        ${c.title}
         <span class="status-badge status-${c.status}">${c.status}</span>
       </div>
       <div class="card-meta">
-        📰 ${c.source} ／ 🔍 キーワード: ${c.keyword} ／ 📅 ${c.found_at}
+        📰 ${c.source} ／ 🔍 ${c.keyword} ／ 📅 ${c.found_at}
       </div>
       <div class="card-summary">${c.summary}</div>
       <div class="card-actions">
-        <button class="btn btn-open" onclick="window.open('${c.url}', '_blank')">記事を開く</button>
+        <button class="btn btn-open" onclick="openUrl('${c.url}')">🔗 記事を開く</button>
         <button class="btn btn-approve" onclick="updateStatus('${c.id}', '承認')">✅ 承認</button>
         <button class="btn btn-reject" onclick="updateStatus('${c.id}', '却下')">❌ 却下</button>
       </div>
