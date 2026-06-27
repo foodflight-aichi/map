@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>候補記事レビュー｜地域たすけあいマップ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background: #FAFAF7; color: #1a1a1a; font-size: 14px; }
+    header { background: #1B4332; color: white; padding: 1rem 1.5rem; }
+    header h1 { font-size: 16px; font-weight: 700; }
+    header p { font-size: 12px; opacity: .8; margin-top: 2px; }
+    main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .stats { display: flex; gap: 12px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .stat { background: white; border: 1px solid #e0ddd5; border-radius: 8px; padding: 10px 16px; font-size: 13px; }
+    .stat strong { font-size: 20px; display: block; color: #1B4332; }
+    .filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid #e0ddd5; background: white; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .filter-btn.active { background: #1B4332; color: white; border-color: #1B4332; }
+    .card { background: white; border: 1px solid #e0ddd5; border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
+    .card.承認 { border-left: 4px solid #1B4332; }
+    .card.却下 { border-left: 4px solid #ccc; opacity: .6; }
+    .card.未確認 { border-left: 4px solid #E8834A; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .card-title a { color: #1a1a1a; text-decoration: none; }
+    .card-title a:hover { text-decoration: underline; }
+    .card-meta { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .card-summary { font-size: 12px; color: #555; line-height: 1.7; margin-bottom: 10px; }
+    .card-actions { display: flex; gap: 8px; }
+    .btn { padding: 5px 14px; border-radius: 16px; border: none; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .btn-approve { background: #1B4332; color: white; }
+    .btn-reject { background: #eee; color: #555; }
+    .btn-open { background: #2980b9; color: white; }
+    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-left: 8px; }
+    .status-未確認 { background: #FFF0E8; color: #E8834A; }
+    .status-承認 { background: #D8F3DC; color: #1B4332; }
+    .status-却下 { background: #eee; color: #888; }
+    .empty { text-align: center; color: #888; padding: 3rem; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>📋 候補記事レビュー画面</h1>
+  <p>自動巡回で見つかった記事を確認・承認してください</p>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat"><strong id="cnt-all">0</strong>件 合計</div>
+    <div class="stat"><strong id="cnt-unconfirmed" style="color:#E8834A">0</strong>件 未確認</div>
+    <div class="stat"><strong id="cnt-approved" style="color:#1B4332">0</strong>件 承認済み</div>
+    <div class="stat"><strong id="cnt-rejected" style="color:#888">0</strong>件 却下</div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('全て', this)">全て</button>
+    <button class="filter-btn" onclick="setFilter('未確認', this)">未確認のみ</button>
+    <button class="filter-btn" onclick="setFilter('承認', this)">承認済み</button>
+    <button class="filter-btn" onclick="setFilter('却下', this)">却下</button>
+  </div>
+
+  <div id="cards"></div>
+</main>
+
+<script>
+let candidates = [];
+let currentFilter = '全て';
+
+async function loadData() {
+  try {
+    const res = await fetch('data/candidates.json');
+    candidates = await res.json();
+  } catch(e) {
+    candidates = [];
+  }
+  // ローカルストレージのステータスを適用
+  candidates = candidates.map(c => ({
+    ...c,
+    status: localStorage.getItem('status_' + c.id) || c.status
+  }));
+  render();
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function updateStatus(id, status) {
+  localStorage.setItem('status_' + id, status);
+  candidates = candidates.map(c => c.id === id ? {...c, status} : c);
+  render();
+}
+
+function render() {
+  const filtered = currentFilter === '全て' 
+    ? candidates 
+    : candidates.filter(c => c.status === currentFilter);
+
+  document.getElementById('cnt-all').textContent = candidates.length;
+  document.getElementById('cnt-unconfirmed').textContent = candidates.filter(c => c.status === '未確認').length;
+  document.getElementById('cnt-approved').textContent = candidates.filter(c => c.status === '承認').length;
+  document.getElementById('cnt-rejected').textContent = candidates.filter(c => c.status === '却下').length;
+
+  const container = document.getElementById('cards');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty">該当する記事がありません</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(c => `
+    <div class="card ${c.status}">
+      <div class="card-title">
+        <a href="${c.url}" target="_blank">${c.title}</a>
+        <span class="status-badge status-${c.status}">${c.status}</span>
+      </div>
+      <div class="card-meta">
+        📰 ${c.source} ／ 🔍 キーワード: ${c.keyword} ／ 📅 ${c.found_at}
+      </div>
+      <div class="card-summary">${c.summary}</div>
+      <div class="card-actions">
+        <button class="btn btn-open" onclick="window.open('${c.url}', '_blank')">記事を開く</button>
+        <button class="btn btn-approve" onclick="updateStatus('${c.id}', '承認')">✅ 承認</button>
+        <button class="btn btn-reject" onclick="updateStatus('${c.id}', '却下')">❌ 却下</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+loadData();
+</script>
+</body>
+</html>
