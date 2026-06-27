@@ -1,0 +1,35 @@
+name: 拠点情報の自動巡回
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 毎日午前10時（JST）に実行
+  workflow_dispatch:       # 手動実行も可能
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 必要なライブラリをインストール
+        run: pip install requests feedparser beautifulsoup4
+
+      - name: 巡回スクリプトを実行
+        run: python scripts/crawl.py
+
+      - name: 変更があればコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/candidates.json
+          git diff --staged --quiet || git commit -m "自動巡回: 拠点候補を更新 $(date '+%Y-%m-%d')"
+          git push
