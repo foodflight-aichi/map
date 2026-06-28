@@ -21,170 +21,386 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --green: #1B4332; --green-light: #D8F3DC;
-      --orange: #E8834A; --orange-light: #FFF0E8;
-      --blue: #2980b9; --blue-light: #EAF4FB;
-      --text: #1a1a1a; --muted: #5a5a5a;
-      --bg: #FAFAF7; --border: #e0ddd5;
-      --stale: #c0392b; --stale-bg: #fde8e8;
-    }
-    body { font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.7; }
-    header { background:var(--green); color:white; padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
-    header h1 { font-size:18px; font-weight:700; }
-    header p { font-size:12px; opacity:.8; margin-top:2px; }
-    .badge { font-size:11px; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 10px; border-radius:20px; white-space:nowrap; }
-    main { max-width:960px; margin:0 auto; padding:1.25rem 1rem 3rem; }
-    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:.75rem; align-items:center; }
-    .filter-btn { display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px solid; font-size:13px; font-family:inherit; cursor:pointer; background:white; transition:opacity .15s; }
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+    @keyframes bounce{0%,100%{transform:translate(-50%,-100%)}50%{transform:translate(-50%,-114%)}}
+    @keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(27,67,50,.4)}70%{box-shadow:0 0 0 12px rgba(27,67,50,0)}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes gradMove{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+    @keyframes countPop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+    body { font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif; background:#f0f7f3; color:#1a1a1a; overflow-x:hidden; }
+
+    .nav { background:rgba(240,247,243,.9); backdrop-filter:blur(20px); border-bottom:1px solid rgba(27,67,50,.08); padding:0 28px; height:58px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; }
+    .nav-logo { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:700; color:#1B4332; cursor:pointer; }
+    .nav-mark { width:30px; height:30px; background:linear-gradient(135deg,#1B4332,#40916C); border-radius:8px; display:flex; align-items:center; justify-content:center; animation:pulse 2.5s infinite; }
+    .nav-mark i { font-size:16px; color:#fff; }
+    .nav-links { display:flex; gap:24px; }
+    .nav-links span { font-size:13px; color:#666; cursor:pointer; transition:color .2s; position:relative; padding-bottom:2px; }
+    .nav-links span::after { content:''; position:absolute; bottom:0; left:0; width:0; height:1.5px; background:#1B4332; transition:width .25s; }
+    .nav-links span:hover { color:#1B4332; }
+    .nav-links span:hover::after { width:100%; }
+    .nav-btn { background:linear-gradient(135deg,#1B4332,#40916C); color:#fff; border:none; padding:9px 20px; border-radius:9px; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; transition:all .2s; box-shadow:0 4px 14px rgba(27,67,50,.3); }
+    .nav-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(27,67,50,.4); }
+
+    .hero { padding:64px 28px 56px; max-width:940px; margin:0 auto; display:grid; grid-template-columns:1.1fr 1fr; gap:48px; align-items:center; }
+    .hero-left { animation:fadeUp .7s ease both; }
+    .hero-tag { display:inline-flex; align-items:center; gap:6px; background:#D8F3DC; color:#1B4332; border-radius:20px; padding:5px 14px; font-size:12px; font-weight:500; margin-bottom:22px; }
+    .hero h1 { font-size:40px; font-weight:700; line-height:1.1; letter-spacing:-1.5px; color:#0a1f14; margin-bottom:16px; }
+    .hero h1 .grad { background:linear-gradient(135deg,#1B4332 0%,#40916C 50%,#74C69D 100%); background-size:200% 200%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:gradMove 3s ease infinite; }
+    .hero-sub { font-size:15px; color:#556; line-height:1.8; max-width:420px; margin-bottom:30px; }
+    .hero-btns { display:flex; gap:10px; margin-bottom:36px; flex-wrap:wrap; }
+    .btn-main { background:linear-gradient(135deg,#1B4332,#40916C); color:#fff; border:none; padding:13px 24px; border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; transition:all .25s; box-shadow:0 6px 18px rgba(27,67,50,.3); }
+    .btn-main:hover { transform:translateY(-2px) scale(1.02); box-shadow:0 10px 28px rgba(27,67,50,.4); }
+    .btn-sub { background:#fff; color:#1B4332; border:1.5px solid rgba(27,67,50,.2); padding:13px 24px; border-radius:10px; font-size:14px; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; transition:all .25s; }
+    .btn-sub:hover { border-color:#1B4332; background:#f0f7f3; transform:translateY(-2px); }
+
+    .counters { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .counter { background:#fff; border:1px solid rgba(27,67,50,.1); border-radius:14px; padding:18px; cursor:default; transition:all .3s; position:relative; overflow:hidden; }
+    .counter:hover { transform:translateY(-4px) scale(1.02); box-shadow:0 12px 32px rgba(27,67,50,.12); border-color:rgba(27,67,50,.2); }
+    .counter .n { font-size:34px; font-weight:700; color:#1B4332; line-height:1; transition:color .2s; }
+    .counter:hover .n { animation:countPop .3s ease; color:#40916C; }
+    .counter .l { font-size:12px; color:#888; margin-top:6px; display:flex; align-items:center; gap:5px; }
+    .counter .dot { width:7px; height:7px; border-radius:50%; }
+
+    .hero-right { animation:scaleIn .7s .2s ease both; position:relative; }
+    .floating-card { position:absolute; background:#fff; border:1px solid rgba(27,67,50,.1); border-radius:12px; padding:10px 14px; box-shadow:0 8px 24px rgba(0,0,0,.08); animation:float 3.5s ease-in-out infinite; z-index:10; }
+    .floating-card.a { top:-16px; right:-16px; }
+    .floating-card.b { bottom:110px; left:-20px; animation-delay:1.8s; }
+    .fc-label { font-size:10px; color:#aaa; margin-bottom:2px; }
+    .fc-value { font-size:13px; font-weight:500; color:#1B4332; display:flex; align-items:center; gap:4px; }
+    .fc-dot { width:6px; height:6px; border-radius:50%; background:#4ade80; animation:pulse 1.5s infinite; }
+
+    .map-card { background:#fff; border:1px solid rgba(27,67,50,.1); border-radius:18px; overflow:hidden; box-shadow:0 20px 60px rgba(27,67,50,.15); transition:box-shadow .3s; }
+    .map-card:hover { box-shadow:0 28px 80px rgba(27,67,50,.2); }
+    .map-top { background:linear-gradient(135deg,#1B4332,#2D6A4F); padding:12px 16px; display:flex; align-items:center; gap:8px; }
+    .map-top-dots { display:flex; gap:5px; }
+    .map-top-dots span { width:10px; height:10px; border-radius:50%; }
+    .map-top-dots span:nth-child(1) { background:#ff5f57; }
+    .map-top-dots span:nth-child(2) { background:#febc2e; }
+    .map-top-dots span:nth-child(3) { background:#28c840; }
+    .map-top-title { font-size:12px; color:rgba(255,255,255,.6); margin-left:4px; }
+    .map-inner-mock { height:180px; background:linear-gradient(160deg,#e8f5e9 0%,#c8e6c9 60%,#a5d6a7 100%); position:relative; overflow:hidden; }
+    .map-inner-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(27,67,50,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(27,67,50,.08) 1px,transparent 1px); background-size:28px 28px; }
+    .mpin { position:absolute; transform:translate(-50%,-100%); animation:bounce .8s ease-in-out infinite alternate; filter:drop-shadow(0 3px 6px rgba(0,0,0,.2)); }
+    .map-bottom-mock { padding:14px 16px; }
+    .map-search-mock { background:#f0f7f3; border:1px solid rgba(27,67,50,.12); border-radius:8px; padding:8px 12px; font-size:13px; color:#999; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:500; cursor:pointer; transition:all .2s; }
+    .chip:hover { transform:scale(1.05); }
+
+    .divider { border:none; border-top:1px solid rgba(27,67,50,.07); margin:0 28px; }
+
+    /* ── 地図エリア ── */
+    .map-section { background:#fff; }
+    .filter-bar { padding:12px 28px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-bottom:1px solid rgba(27,67,50,.07); }
+    .filter-btn { display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1.5px solid; font-size:13px; font-family:inherit; cursor:pointer; transition:opacity .15s; background:white; }
     .filter-btn.inactive { opacity:.35; }
-    .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .fdot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
     .search-wrap { margin-left:auto; }
-    #search { padding:6px 12px; border:1.5px solid var(--border); border-radius:20px; font-size:13px; font-family:inherit; width:180px; }
-    #map { width:100%; height:500px; border-radius:12px; border:1px solid var(--border); overflow:hidden; }
-    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:1rem; }
-    .stat-card { background:white; border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:center; }
-    .stat-num { font-size:24px; font-weight:700; color:var(--green); }
-    .stat-label { font-size:11px; color:var(--muted); margin-top:2px; }
-    .note { margin-top:1.25rem; padding:12px 16px; background:white; border:1px solid var(--border); border-left:4px solid var(--orange); border-radius:0 10px 10px 0; font-size:13px; color:var(--muted); }
-    .note strong { color:var(--text); }
-    .list-section { margin-top:2rem; }
-    .list-section h2 { font-size:16px; font-weight:700; color:var(--green); margin-bottom:.75rem; padding-bottom:6px; border-bottom:2px solid var(--green-light); }
-    .spot-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .spot-table th { background:var(--green); color:white; padding:8px 10px; text-align:left; font-weight:500; }
-    .spot-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
-    .spot-table tr:hover td { background:var(--green-light); }
-    .cat-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; white-space:nowrap; }
-    .stale-mark { font-size:11px; color:var(--stale); background:var(--stale-bg); padding:2px 6px; border-radius:8px; white-space:nowrap; }
+    #search { padding:7px 14px; border:1.5px solid rgba(27,67,50,.2); border-radius:20px; font-size:13px; font-family:inherit; width:200px; outline:none; }
+    #search:focus { border-color:#1B4332; }
+    #map { width:100%; height:480px; }
+
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:940px; margin:0 auto; padding:20px 28px 0; }
+    .stat-card { background:#fff; border:1px solid rgba(27,67,50,.1); border-radius:12px; padding:14px 16px; text-align:center; transition:all .3s; }
+    .stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(27,67,50,.08); }
+    .stat-num { font-size:26px; font-weight:700; color:#1B4332; }
+    .stat-label { font-size:11px; color:#888; margin-top:3px; }
+
+    .note { max-width:940px; margin:1rem auto 0; padding:12px 28px; font-size:13px; color:#667; border-left:3px solid #E8834A; margin-left:28px; margin-right:28px; background:#fff; border-radius:0 8px 8px 0; }
+    .note strong { color:#1a1a1a; }
+
+    /* ── 拠点カード ── */
+    .features { max-width:940px; margin:0 auto; padding:56px 28px; }
+    .feat-header { text-align:center; margin-bottom:48px; }
+    .feat-tag { display:inline-flex; align-items:center; gap:6px; background:#D8F3DC; color:#1B4332; border-radius:20px; padding:5px 14px; font-size:12px; font-weight:500; margin-bottom:14px; }
+    .feat-header h2 { font-size:30px; font-weight:700; letter-spacing:-0.5px; color:#0a1f14; margin-bottom:10px; }
+    .feat-header p { font-size:15px; color:#667; }
+    .feat-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .feat-card { background:#fff; border:1px solid rgba(27,67,50,.08); border-radius:16px; padding:26px; cursor:pointer; transition:all .3s; position:relative; overflow:hidden; }
+    .feat-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#1B4332,#74C69D); transform:scaleX(0); transform-origin:left; transition:transform .3s; }
+    .feat-card:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(27,67,50,.12); border-color:rgba(27,67,50,.15); }
+    .feat-card:hover::after { transform:scaleX(1); }
+    .feat-card-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:18px; transition:transform .3s; }
+    .feat-card:hover .feat-card-icon { transform:scale(1.1) rotate(-5deg); }
+    .feat-card h3 { font-size:16px; font-weight:700; color:#0a1f14; margin-bottom:7px; }
+    .feat-card p { font-size:13px; color:#667; line-height:1.7; }
+    .feat-card-count { position:absolute; top:22px; right:22px; font-size:12px; font-weight:500; padding:3px 10px; border-radius:20px; }
+    .feat-card-arrow { display:inline-flex; align-items:center; gap:4px; font-size:13px; color:#1B4332; margin-top:14px; font-weight:500; opacity:0; transform:translateX(-6px); transition:all .25s; }
+    .feat-card:hover .feat-card-arrow { opacity:1; transform:translateX(0); }
+
+    /* ── ステップ ── */
+    .steps { max-width:940px; margin:0 auto; padding:0 28px 60px; }
+    .steps-tag { display:inline-flex; align-items:center; gap:6px; background:#D8F3DC; color:#1B4332; border-radius:20px; padding:5px 14px; font-size:12px; font-weight:500; margin-bottom:14px; }
+    .steps h2 { font-size:28px; font-weight:700; letter-spacing:-0.5px; color:#0a1f14; margin-bottom:36px; }
+    .steps-list { display:flex; gap:0; position:relative; }
+    .steps-connector { position:absolute; top:22px; left:10%; right:10%; height:2px; background:linear-gradient(90deg,#1B4332,#40916C,#74C69D); z-index:0; border-radius:2px; }
+    .step { flex:1; text-align:center; position:relative; z-index:1; }
+    .step-num { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#1B4332,#40916C); color:#fff; font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; box-shadow:0 6px 18px rgba(27,67,50,.35); transition:all .3s; }
+    .step:hover .step-num { transform:scale(1.15); box-shadow:0 8px 24px rgba(27,67,50,.45); }
+    .step h4 { font-size:14px; font-weight:700; color:#0a1f14; margin-bottom:5px; }
+    .step p { font-size:12px; color:#889; line-height:1.6; padding:0 12px; }
+
+    /* ── CTA ── */
+    .cta-bar { margin:0 28px 60px; background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 50%,#40916C 100%); background-size:200% 200%; animation:gradMove 4s ease infinite; border-radius:18px; padding:40px 44px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; position:relative; overflow:hidden; box-shadow:0 16px 48px rgba(27,67,50,.3); }
+    .cta-orb { position:absolute; border-radius:50%; background:rgba(255,255,255,.06); }
+    .cta-orb.a { width:200px; height:200px; right:-60px; top:-60px; }
+    .cta-orb.b { width:120px; height:120px; right:100px; bottom:-40px; }
+    .cta-orb.c { width:80px; height:80px; left:40%; top:-20px; }
+    .cta-bar h2 { font-size:22px; font-weight:700; color:#fff; margin-bottom:8px; position:relative; z-index:1; }
+    .cta-bar p { font-size:14px; color:rgba(255,255,255,.65); position:relative; z-index:1; }
+    .btn-white { background:#fff; color:#1B4332; border:none; padding:14px 28px; border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:8px; transition:all .25s; box-shadow:0 4px 14px rgba(0,0,0,.15); white-space:nowrap; flex-shrink:0; position:relative; z-index:1; }
+    .btn-white:hover { background:#f0f7f3; transform:translateY(-2px) scale(1.03); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+
+    /* ── SEOコンテンツ ── */
+    .seo-section { background:#fff; padding:2rem 28px; max-width:940px; margin:0 auto 0; }
+    .seo-section h2 { font-size:16px; font-weight:700; color:#1B4332; margin-bottom:.75rem; padding-bottom:6px; border-bottom:2px solid #D8F3DC; }
+    .seo-section p { font-size:13px; color:#556; line-height:1.9; margin-bottom:1.5rem; }
+
+    /* ── フッター ── */
+    footer { border-top:1px solid rgba(27,67,50,.08); padding:22px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#fff; }
+    footer p { font-size:12px; color:#bbb; }
+    footer a { font-size:12px; color:#1B4332; text-decoration:none; font-weight:500; }
+
+    /* ── ポップアップ ── */
     .popup-name { font-weight:700; font-size:14px; margin-bottom:4px; }
     .popup-cat { font-size:11px; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:8px; }
     .popup-info { font-size:12px; color:#444; line-height:1.8; }
-    .popup-stale { margin-top:6px; font-size:11px; color:var(--stale); background:var(--stale-bg); padding:3px 8px; border-radius:8px; display:inline-block; }
-    footer { background:var(--green); color:rgba(255,255,255,.7); text-align:center; font-size:12px; padding:1.5rem; margin-top:3rem; }
-    footer a { color:rgba(255,255,255,.9); }
+    .popup-stale { margin-top:6px; font-size:11px; color:#c0392b; background:#fde8e8; padding:3px 8px; border-radius:8px; display:inline-block; }
+    .stale-mark { font-size:11px; color:#c0392b; background:#fde8e8; padding:2px 6px; border-radius:8px; }
+
+    /* ── 一覧テーブル ── */
+    .list-section { max-width:940px; margin:2rem auto 0; padding:0 28px 2rem; }
+    .list-section h2 { font-size:16px; font-weight:700; color:#1B4332; margin-bottom:.75rem; padding-bottom:6px; border-bottom:2px solid #D8F3DC; }
+    .spot-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .spot-table th { background:#1B4332; color:white; padding:8px 10px; text-align:left; font-weight:500; }
+    .spot-table td { padding:8px 10px; border-bottom:1px solid #e0ddd5; vertical-align:top; }
+    .spot-table tr:hover td { background:#D8F3DC; }
+    .cat-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; }
+
     @media print {
-      header,.filters,#map,.stats,.note,.search-wrap { display:none!important; }
+      .nav, .hero, .filter-bar, #map, .stats, .note, .features, .steps, .cta-bar { display:none !important; }
       .list-section { margin-top:0; }
-      body { font-size:12px; }
     }
-    @media (max-width:600px) {
+    @media (max-width:700px) {
+      .hero { grid-template-columns:1fr; padding-top:40px; }
+      .hero-right { display:none; }
+      .hero h1 { font-size:30px; }
       #map { height:340px; }
       .stats { grid-template-columns:1fr 1fr; }
-      .stats .stat-card:last-child { grid-column:span 2; }
-      .spot-table th:nth-child(4),.spot-table td:nth-child(4) { display:none; }
-      #search { width:130px; }
+      .feat-grid { grid-template-columns:1fr; }
+      .nav-links { display:none; }
     }
   </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>🍱 地域たすけあいマップ</h1>
-    <p>愛知県のこども食堂・フードバンク・炊き出しを地図で検索</p>
-  </div>
-  <span class="badge">社協連携・令和7年11月現在</span>
-</header>
 
-<main>
-  <div class="filters">
-    <button class="filter-btn active" data-cat="food_bank"
-      style="color:var(--green);border-color:var(--green);"
-      onclick="toggleFilter('food_bank',this)">
-      <span class="dot" style="background:var(--green)"></span>フードバンク
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="nav-mark">🍱</div>
+    地域たすけあいマップ
+  </div>
+  <div class="nav-links">
+    <span onclick="document.getElementById('map').scrollIntoView({behavior:'smooth'})">マップ</span>
+    <span onclick="document.querySelector('.features').scrollIntoView({behavior:'smooth'})">支援の種類</span>
+    <span onclick="document.querySelector('.list-section').scrollIntoView({behavior:'smooth'})">一覧</span>
+    <span onclick="window.location.href='mailto:info@example.com'">掲載依頼</span>
+  </div>
+  <button class="nav-btn" onclick="document.getElementById('map').scrollIntoView({behavior:'smooth'})">🗺 支援を探す</button>
+</nav>
+
+<!-- ヒーロー -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">📍 愛知県 276拠点を掲載</div>
+    <h1>食に困ったとき、<br><span class="grad">近くに必ず</span><br>誰かがいる。</h1>
+    <p class="hero-sub">愛知県内のこども食堂・フードバンク・炊き出し・フードドライブBOXを地図で探せます。支援者向けの紹介ツールとしても。</p>
+    <div class="hero-btns">
+      <button class="btn-main" onclick="document.getElementById('map').scrollIntoView({behavior:'smooth'})">🗺 今すぐ地図を見る</button>
+      <button class="btn-sub" onclick="document.querySelector('.features').scrollIntoView({behavior:'smooth'})">ℹ️ 詳しく見る</button>
+    </div>
+    <div class="counters">
+      <div class="counter"><div class="n" id="c1">0</div><div class="l"><span class="dot" style="background:#E8834A"></span>こども食堂</div></div>
+      <div class="counter"><div class="n" id="c2">0</div><div class="l"><span class="dot" style="background:#1B4332"></span>フードバンク</div></div>
+      <div class="counter"><div class="n" id="c3">0</div><div class="l"><span class="dot" style="background:#2980b9"></span>炊き出し</div></div>
+      <div class="counter"><div class="n" id="c4">0</div><div class="l"><span class="dot" style="background:#8B008B"></span>フードドライブ</div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="floating-card a">
+      <div class="fc-label">自動更新</div>
+      <div class="fc-value"><span class="fc-dot"></span> 毎日巡回中</div>
+    </div>
+    <div class="floating-card b">
+      <div class="fc-label">対応エリア</div>
+      <div class="fc-value">🗾 愛知県全域</div>
+    </div>
+    <div class="map-card">
+      <div class="map-top">
+        <div class="map-top-dots"><span></span><span></span><span></span></div>
+        <div class="map-top-title">地域たすけあいマップ — 愛知県</div>
+      </div>
+      <div class="map-inner-mock">
+        <div class="map-inner-grid"></div>
+        <div class="mpin" style="left:42%;top:54%;animation-delay:.0s"><svg width="20" height="26" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14 21.732 0 14 0z" fill="#E8834A"/><circle cx="14" cy="14" r="6" fill="white" opacity=".9"/></svg></div>
+        <div class="mpin" style="left:33%;top:62%;animation-delay:.4s"><svg width="20" height="26" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14 21.732 0 14 0z" fill="#1B4332"/><circle cx="14" cy="14" r="6" fill="white" opacity=".9"/></svg></div>
+        <div class="mpin" style="left:57%;top:46%;animation-delay:.8s"><svg width="20" height="26" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14 21.732 0 14 0z" fill="#E8834A"/><circle cx="14" cy="14" r="6" fill="white" opacity=".9"/></svg></div>
+        <div class="mpin" style="left:48%;top:38%;animation-delay:1.2s"><svg width="20" height="26" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14 21.732 0 14 0z" fill="#2980b9"/><circle cx="14" cy="14" r="6" fill="white" opacity=".9"/></svg></div>
+        <div class="mpin" style="left:65%;top:68%;animation-delay:1.6s"><svg width="20" height="26" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 22 14 22S28 23.333 28 14 21.732 0 14 0z" fill="#8B008B"/><circle cx="14" cy="14" r="6" fill="white" opacity=".9"/></svg></div>
+      </div>
+      <div class="map-bottom-mock">
+        <div class="map-search-mock">🔍 市区町村・拠点名で検索</div>
+        <div class="chips">
+          <span class="chip" style="background:#D8F3DC;color:#1B4332">📦 フードバンク</span>
+          <span class="chip" style="background:#FFF0E8;color:#c45e1a">🍜 こども食堂</span>
+          <span class="chip" style="background:#EAF4FB;color:#1a5c8a">🔥 炊き出し</span>
+          <span class="chip" style="background:#f3e8f3;color:#5b1a7a">📮 フードドライブ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- フィルター + 地図 -->
+<div class="map-section">
+  <div class="filter-bar">
+    <button class="filter-btn active" data-cat="food_bank" style="color:#1B4332;border-color:#1B4332;" onclick="toggleFilter('food_bank',this)">
+      <span class="fdot" style="background:#1B4332"></span>フードバンク
     </button>
-    <button class="filter-btn active" data-cat="kodomo_shokudo"
-      style="color:var(--orange);border-color:var(--orange);"
-      onclick="toggleFilter('kodomo_shokudo',this)">
-      <span class="dot" style="background:var(--orange)"></span>こども食堂
+    <button class="filter-btn active" data-cat="kodomo_shokudo" style="color:#E8834A;border-color:#E8834A;" onclick="toggleFilter('kodomo_shokudo',this)">
+      <span class="fdot" style="background:#E8834A"></span>こども食堂
     </button>
-    <button class="filter-btn active" data-cat="takidashi"
-      style="color:var(--blue);border-color:var(--blue);"
-      onclick="toggleFilter('takidashi',this)">
-      <span class="dot" style="background:var(--blue)"></span>炊き出し
+    <button class="filter-btn active" data-cat="takidashi" style="color:#2980b9;border-color:#2980b9;" onclick="toggleFilter('takidashi',this)">
+      <span class="fdot" style="background:#2980b9"></span>炊き出し
     </button>
-    <button class="filter-btn active" data-cat="food_drive"
-      style="color:#8B008B;border-color:#8B008B;"
-      onclick="toggleFilter('food_drive',this)">
-      <span class="dot" style="background:#8B008B"></span>フードドライブBOX
+    <button class="filter-btn active" data-cat="food_drive" style="color:#8B008B;border-color:#8B008B;" onclick="toggleFilter('food_drive',this)">
+      <span class="fdot" style="background:#8B008B"></span>フードドライブBOX
     </button>
     <div class="search-wrap">
       <input id="search" type="text" placeholder="市区町村・拠点名で検索" oninput="doSearch(this.value)" />
     </div>
   </div>
-
   <div id="map" aria-label="支援拠点マップ"></div>
+</div>
 
-  <div class="stats">
-    <div class="stat-card"><div class="stat-num" id="cnt-total">0</div><div class="stat-label">表示中の拠点数</div></div>
-    <div class="stat-card"><div class="stat-num" id="cnt-stale" style="color:var(--stale)">0</div><div class="stat-label">要確認（90日超）</div></div>
-    <div class="stat-card"><div class="stat-num" style="font-size:16px">愛知県</div><div class="stat-label">対応地域</div></div>
-  </div>
+<div class="stats">
+  <div class="stat-card"><div class="stat-num" id="cnt-total">0</div><div class="stat-label">表示中の拠点数</div></div>
+  <div class="stat-card"><div class="stat-num" id="cnt-stale" style="color:#c0392b">0</div><div class="stat-label">要確認（90日超）</div></div>
+  <div class="stat-card"><div class="stat-num" style="font-size:16px">愛知県</div><div class="stat-label">対応地域</div></div>
+</div>
 
-  <div class="note">
-    <strong>ご利用前に：</strong>
-    開催日時・場所・参加費等は変更になる場合があります。必ず各拠点へ事前にご確認ください。
-    最終確認から90日以上経過した拠点には <span style="color:var(--stale)">⚠ 要確認</span> を表示しています。<br>
-    出典：愛知県社会福祉協議会「子ども食堂マップ2025年版」（令和7年11月現在）
-  </div>
+<div class="note">
+  <strong>ご利用前に：</strong>
+  開催日時・場所・参加費等は変更になる場合があります。必ず各拠点へ事前にご確認ください。
+  出典：愛知県社会福祉協議会「子ども食堂マップ2025年版」（令和7年11月現在）
+</div>
 
-  <div class="list-section">
-    <h2>拠点一覧（印刷・検索用）</h2>
-    <table class="spot-table">
-      <thead>
-        <tr>
-          <th>拠点名</th><th>種別</th><th>開催日時</th><th>利用条件</th><th>連絡先</th>
-        </tr>
-      </thead>
-      <tbody id="spot-tbody"></tbody>
-    </table>
-  </div>
-</main>
+<hr class="divider" style="margin-top:2rem">
 
-<!-- 掲載依頼セクション -->
-<section style="background:#fff;border-top:2px solid #D8F3DC;padding:2rem 1rem;text-align:center;">
-  <div style="max-width:960px;margin:0 auto;">
-    <h2 style="font-size:18px;font-weight:700;color:#1B4332;margin-bottom:0.5rem;">📮 拠点情報の掲載・修正依頼</h2>
-    <p style="font-size:14px;color:#5a5a5a;margin-bottom:1rem;">
-      フードバンク・こども食堂・炊き出し・フードドライブBOXの情報掲載を希望される団体様、<br>
-      情報の修正・更新がある方はメールにてご連絡ください。
-    </p>
-    <a href="mailto:info@example.com"
-      style="display:inline-block;background:#1B4332;color:white;padding:10px 28px;border-radius:24px;font-size:14px;text-decoration:none;font-weight:500;">
-      📧 掲載・修正を依頼する
-    </a>
-    <p style="font-size:12px;color:#888;margin-top:1rem;">
-      ※ 掲載は無料です。団体名・住所・開催日時・連絡先をお知らせください。
-    </p>
+<!-- 支援の種類 -->
+<div class="features">
+  <div class="feat-header">
+    <div class="feat-tag">❤️ 支援の種類</div>
+    <h2>あなたに合った<br>支援を見つけて</h2>
+    <p>4種類の支援拠点を地図上で一覧できます</p>
   </div>
-</section>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <span class="feat-card-count" style="background:#D8F3DC;color:#1B4332">19団体</span>
+      <div class="feat-card-icon" style="background:#D8F3DC">📦</div>
+      <h3>フードバンク</h3>
+      <p>食品を受け取り、必要な方へ無償で提供する団体。企業・個人からの寄付も受け付けています。</p>
+      <div class="feat-card-arrow">→ 一覧を見る</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-card-count" style="background:#FFF0E8;color:#c45e1a">244か所</span>
+      <div class="feat-card-icon" style="background:#FFF0E8">🍜</div>
+      <h3>こども食堂</h3>
+      <p>子どもが一人でも来られる無料または低額の食堂。第三の居場所としての役割も担います。</p>
+      <div class="feat-card-arrow">→ 一覧を見る</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-card-count" style="background:#EAF4FB;color:#1a5c8a">随時追加中</span>
+      <div class="feat-card-icon" style="background:#EAF4FB">🔥</div>
+      <h3>炊き出し</h3>
+      <p>地域で開催される食事提供イベント。誰でも参加できる場が多く、月1回程度の開催が多いです。</p>
+      <div class="feat-card-arrow">→ 一覧を見る</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-card-count" style="background:#f3e8f3;color:#5b1a7a">13か所</span>
+      <div class="feat-card-icon" style="background:#f3e8f3">📮</div>
+      <h3>フードドライブBOX</h3>
+      <p>食品を寄付できるBOX設置場所。未開封で賞味期限が残っている食品を受け付けています。</p>
+      <div class="feat-card-arrow">→ 一覧を見る</div>
+    </div>
+  </div>
+</div>
+
+<!-- ステップ -->
+<div class="steps">
+  <div class="steps-tag">🗺 使い方</div>
+  <h2>3ステップで支援拠点を探せます</h2>
+  <div class="steps-list">
+    <div class="steps-connector"></div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <h4>地図を開く</h4>
+      <p>愛知県全域の拠点が地図上に表示されます</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h4>フィルターで絞る</h4>
+      <p>種類や市区町村で絞り込んで検索できます</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h4>拠点に連絡する</h4>
+      <p>詳細をクリックして連絡先を確認してください</p>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-bar">
+  <div class="cta-orb a"></div>
+  <div class="cta-orb b"></div>
+  <div class="cta-orb c"></div>
+  <div>
+    <h2>掲載・情報提供はこちら</h2>
+    <p>拠点情報の掲載・修正・追加を希望される団体様はお気軽にご連絡ください。掲載は無料です。<br>※ 掲載は無料です。団体名・住所・開催日時・連絡先をお知らせください。</p>
+  </div>
+  <button class="btn-white" onclick="window.location.href='mailto:info@example.com'">📧 連絡する</button>
+</div>
 
 <!-- SEOコンテンツ -->
-<section style="background:#FAFAF7;padding:2rem 1rem;">
-  <div style="max-width:960px;margin:0 auto;">
-    <h2 style="font-size:16px;font-weight:700;color:#1B4332;margin-bottom:1rem;padding-bottom:6px;border-bottom:2px solid #D8F3DC;">このサイトについて</h2>
-    <p style="font-size:13px;color:#5a5a5a;line-height:1.9;margin-bottom:1rem;">
-      「地域たすけあいマップ」は、愛知県内のこども食堂・フードバンク・炊き出し・フードドライブBOXを地図上で一覧できる無料のプラットフォームです。
-      食に困っている方（子ども・ひとり親家庭・生活困窮者・ホームレス状態の方）が、近くの支援拠点を見つけるためにご利用いただけます。
-      また、社会福祉協議会・行政窓口・学校など支援者が「紹介ツール」としてもご活用いただけます。
-    </p>
-    <h2 style="font-size:16px;font-weight:700;color:#1B4332;margin-bottom:1rem;padding-bottom:6px;border-bottom:2px solid #D8F3DC;">こども食堂とは</h2>
-    <p style="font-size:13px;color:#5a5a5a;line-height:1.9;margin-bottom:1rem;">
-      こども食堂は、身近な地域で子どもが一人でも安心して行くことができる、無料または低額の食堂です。
-      食事の提供だけでなく、学校や家庭以外の「第三の居場所」としての役割も担っています。
-      愛知県内には244か所以上のこども食堂があります（2025年11月現在）。
-    </p>
-    <h2 style="font-size:16px;font-weight:700;color:#1B4332;margin-bottom:1rem;padding-bottom:6px;border-bottom:2px solid #D8F3DC;">フードバンクとは</h2>
-    <p style="font-size:13px;color:#5a5a5a;line-height:1.9;">
-      フードバンクは、まだ食べられるのに様々な理由で捨てられる運命の食品を企業・個人から寄付していただき、
-      生活に困っている方や福祉施設へ無償で提供する活動・団体です。
-      愛知県内には19団体以上のフードバンクが活動しています（2026年6月現在）。
-    </p>
-  </div>
-</section>
+<div class="seo-section">
+  <h2>このサイトについて</h2>
+  <p>「地域たすけあいマップ」は、愛知県内のこども食堂・フードバンク・炊き出し・フードドライブBOXを地図上で一覧できる無料のプラットフォームです。食に困っている方（子ども・ひとり親家庭・生活困窮者・ホームレス状態の方）が、近くの支援拠点を見つけるためにご利用いただけます。また、社会福祉協議会・行政窓口・学校など支援者が「紹介ツール」としてもご活用いただけます。</p>
+  <h2>こども食堂とは</h2>
+  <p>こども食堂は、身近な地域で子どもが一人でも安心して行くことができる、無料または低額の食堂です。食事の提供だけでなく、学校や家庭以外の「第三の居場所」としての役割も担っています。愛知県内には244か所以上のこども食堂があります（2025年11月現在）。</p>
+  <h2>フードバンクとは</h2>
+  <p>フードバンクは、まだ食べられるのに様々な理由で捨てられる運命の食品を企業・個人から寄付していただき、生活に困っている方や福祉施設へ無償で提供する活動・団体です。愛知県内には19団体以上のフードバンクが活動しています（2026年6月現在）。</p>
+</div>
+
+<!-- 拠点一覧 -->
+<div class="list-section">
+  <h2>拠点一覧（印刷・検索用）</h2>
+  <table class="spot-table">
+    <thead>
+      <tr><th>拠点名</th><th>種別</th><th>開催日時</th><th>利用条件</th><th>連絡先</th></tr>
+    </thead>
+    <tbody id="spot-tbody"></tbody>
+  </table>
+</div>
 
 <footer>
   <p>地域たすけあいマップ ／ データ出典：愛知県社会福祉協議会「子ども食堂マップ2025年版」</p>
-  <p style="margin-top:4px"><a href="mailto:info@example.com">情報提供・修正はこちら</a></p>
+  <a href="mailto:info@example.com">情報提供・修正はこちら</a>
 </footer>
 
 <script>
@@ -216,6 +432,7 @@ function makeIcon(cat, stale) {
 const markers = {};
 const activeFilters = { food_bank:true, kodomo_shokudo:true, takidashi:true, food_drive:true };
 let searchWord = '';
+let allSpots = [];
 
 function addMarkers(dataList) {
   dataList.forEach(s => {
@@ -252,16 +469,15 @@ function toggleFilter(cat, btn) {
   activeFilters[cat] = !activeFilters[cat];
   btn.classList.toggle('active', activeFilters[cat]);
   btn.classList.toggle('inactive', !activeFilters[cat]);
-  applyFilters();
+  Object.values(markers).forEach(({marker, category}) => {
+    if (category === cat) { activeFilters[cat] ? map.addLayer(marker) : map.removeLayer(marker); }
+  });
+  updateStats();
 }
 
 function doSearch(val) {
   searchWord = val.trim();
-  applyFilters();
-}
-
-function applyFilters() {
-  Object.entries(markers).forEach(([id, v]) => {
+  Object.values(markers).forEach(v => {
     if (isVisible(v)) map.addLayer(v.marker); else map.removeLayer(v.marker);
   });
   updateStats();
@@ -274,7 +490,6 @@ function updateStats() {
   buildTable(s => isVisible(markers[s.id]));
 }
 
-let allSpots = [];
 function buildTable(filterFn) {
   const tbody = document.getElementById('spot-tbody');
   tbody.innerHTML = '';
@@ -292,7 +507,6 @@ function buildTable(filterFn) {
   });
 }
 
-// JSONファイルを並列で読み込む
 Promise.all([
   fetch('data/spots.json').then(r => r.json()),
   fetch('data/foodbanks.json').then(r => r.json()),
@@ -301,10 +515,38 @@ Promise.all([
   allSpots = [...spots, ...foodbanks, ...fooddrives];
   addMarkers(allSpots);
   updateStats();
-}).catch(err => {
-  console.error('データ読み込みエラー:', err);
-});
+}).catch(err => console.error('データ読み込みエラー:', err));
+
+// カウントアップアニメーション
+function countUp(el, target, duration) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = Math.floor(start);
+  }, 16);
+}
+
+setTimeout(() => {
+  countUp(document.getElementById('c1'), 244, 1400);
+  setTimeout(() => countUp(document.getElementById('c2'), 19, 900), 200);
+  setTimeout(() => countUp(document.getElementById('c3'), 0, 600), 400);
+  setTimeout(() => countUp(document.getElementById('c4'), 13, 800), 600);
+}, 400);
+
+// スクロールアニメーション
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.animation = 'fadeUp .6s ease both';
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.feat-card, .step, .counter').forEach(el => observer.observe(el));
 </script>
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -312,16 +554,9 @@ Promise.all([
   "name": "地域たすけあいマップ",
   "description": "愛知県内のこども食堂・フードバンク・炊き出し・フードドライブBOXを地図で検索できるプラットフォーム",
   "url": "https://foodflight-aichi.github.io/map/",
-  "inLanguage": "ja",
-  "about": {
-    "@type": "Thing",
-    "name": "食料支援・こども食堂・フードバンク"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "地域たすけあいマップ運営事務局"
-  }
+  "inLanguage": "ja"
 }
 </script>
+
 </body>
 </html>
