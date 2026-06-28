@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>候補記事レビュー｜地域たすけあいマップ</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css" />
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;background:#FAFAF7;color:#1a1a1a;font-size:14px}
@@ -19,18 +18,18 @@ body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;b
 .filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .fb{padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:#555}
 .fb.on{background:#1B4332;color:#fff;border-color:#1B4332}
-.card{background:#fff;border:1px solid #e0ddd5;border-left:3px solid #E8834A;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:8px}
+.card{background:#fff;border:1px solid #e0ddd5;border-left:3px solid #E8834A;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:8px;display:block}
 .card.ok{border-left-color:#1B4332}
 .card.ng{border-left-color:#ccc;opacity:.5}
-.ttl{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.badge{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.ttl{font-size:14px;font-weight:700;margin-bottom:4px}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:6px;vertical-align:middle}
 .badge.new{background:#FFF0E8;color:#A0522D}
 .badge.ok{background:#D8F3DC;color:#1B4332}
 .badge.ng{background:#eee;color:#888}
 .meta{font-size:12px;color:#888;margin-bottom:6px}
 .summary{font-size:13px;color:#555;line-height:1.6;margin-bottom:10px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
-.btn{padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:#f5f5f5;font-size:12px;cursor:pointer;font-family:inherit;color:#333}
+.btn{padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:#f5f5f5;font-size:12px;cursor:pointer;font-family:inherit;color:#333;text-decoration:none}
 .btn:hover{background:#eee}
 .btn.primary{background:#1B4332;color:#fff;border-color:#1B4332}
 .btn.primary:hover{background:#2D6A4F}
@@ -72,18 +71,36 @@ var filt = 'all';
 
 function getStatus(id){ return localStorage.getItem('rv_'+id)||'new'; }
 
-function setStatus(id, st) {
-  localStorage.setItem('rv_'+id, st);
-  items = items.map(function(c){ return c.id===id ? Object.assign({},c,{st:st}) : c; });
-  if(st==='ok') {
-    showToast('✅ 承認しました');
-    filt = 'ok';
-    document.querySelectorAll('.fb').forEach(function(b){ b.classList.remove('on'); });
-    document.getElementById('fb-ok').classList.add('on');
-    draw();
-  } else {
-    draw();
-  }
+function approve(idx) {
+  var c = items[idx];
+  if(!c) return;
+  localStorage.setItem('rv_'+c.id, 'ok');
+  items[idx] = Object.assign({}, c, {st:'ok'});
+  showToast('承認しました');
+  filt = 'ok';
+  document.querySelectorAll('.fb').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('fb-ok').classList.add('on');
+  draw();
+}
+
+function reject(idx) {
+  var c = items[idx];
+  if(!c) return;
+  localStorage.setItem('rv_'+c.id, 'ng');
+  items[idx] = Object.assign({}, c, {st:'ng'});
+  draw();
+}
+
+function openLink(idx) {
+  var c = items[idx];
+  if(!c) return;
+  var a = document.createElement('a');
+  a.href = c.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function showToast(msg) {
@@ -91,11 +108,6 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 1500);
-}
-
-function openArticle(id) {
-  var item = items.find(function(c){ return c.id===id; });
-  if(item){ window.open(item.url,'_blank','noopener'); }
 }
 
 function setF(f, btn) {
@@ -106,27 +118,65 @@ function setF(f, btn) {
 }
 
 function draw() {
-  var list = filt==='all' ? items : items.filter(function(c){ return c.st===filt; });
+  var list = [];
+  var idxMap = [];
+  for(var i=0;i<items.length;i++){
+    if(filt==='all' || items[i].st===filt){
+      list.push(items[i]);
+      idxMap.push(i);
+    }
+  }
+
   document.getElementById('cnt-all').textContent = items.length;
   document.getElementById('cnt-new').textContent = items.filter(function(c){ return c.st==='new'; }).length;
   document.getElementById('cnt-ok').textContent = items.filter(function(c){ return c.st==='ok'; }).length;
   document.getElementById('cnt-ng').textContent = items.filter(function(c){ return c.st==='ng'; }).length;
+
   var box = document.getElementById('cards');
-  if(!list.length){ box.innerHTML='<div class="empty">該当する記事がありません</div>'; return; }
-  box.innerHTML = list.map(function(c){
+  if(!list.length){
+    box.innerHTML = '<div class="empty">該当する記事がありません</div>';
+    return;
+  }
+
+  var html = '';
+  for(var j=0;j<list.length;j++){
+    var c = list[j];
+    var realIdx = idxMap[j];
     var bc = c.st==='ok'?'ok':c.st==='ng'?'ng':'new';
     var bt = c.st==='ok'?'承認済み':c.st==='ng'?'却下':'未確認';
-    return '<div class="card '+c.st+'">'
-      +'<div class="ttl">'+c.title+'<span class="badge '+bc+'">'+bt+'</span></div>'
-      +'<div class="meta">'+c.source+' &nbsp;|&nbsp; '+c.keyword+' &nbsp;|&nbsp; '+c.found_at+'</div>'
-      +'<div class="summary">'+c.summary+'</div>'
-      +'<div class="actions">'
-      +'<button class="btn" onclick="openArticle(\''+c.id+'\')">🔗 記事を開く</button>'
-      +'<button class="btn primary" onclick="setStatus(\''+c.id+'\',\'ok\')">✅ 承認</button>'
-      +'<button class="btn danger" onclick="setStatus(\''+c.id+'\',\'ng\')">❌ 却下</button>'
-      +'</div></div>';
-  }).join('');
+    html += '<div class="card '+c.st+'">'
+      + '<div class="ttl">' + escHtml(c.title) + '<span class="badge '+bc+'">'+bt+'</span></div>'
+      + '<div class="meta">' + escHtml(c.source) + ' | ' + escHtml(c.keyword) + ' | ' + escHtml(c.found_at) + '</div>'
+      + '<div class="summary">' + escHtml(c.summary) + '</div>'
+      + '<div class="actions">'
+      + '<button class="btn" data-action="open" data-idx="'+realIdx+'">🔗 記事を開く</button>'
+      + '<button class="btn primary" data-action="approve" data-idx="'+realIdx+'">✅ 承認</button>'
+      + '<button class="btn danger" data-action="reject" data-idx="'+realIdx+'">❌ 却下</button>'
+      + '</div></div>';
+  }
+  box.innerHTML = html;
 }
+
+function escHtml(str) {
+  if(!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+document.getElementById('cards').addEventListener('click', function(e) {
+  var btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  var action = btn.getAttribute('data-action');
+  var idx = parseInt(btn.getAttribute('data-idx'), 10);
+  if(action==='open') openLink(idx);
+  else if(action==='approve') approve(idx);
+  else if(action==='reject') reject(idx);
+});
 
 fetch('data/candidates.json')
   .then(function(r){ return r.json(); })
@@ -135,7 +185,7 @@ fetch('data/candidates.json')
     draw();
   })
   .catch(function(){
-    document.getElementById('cards').innerHTML='<div class="empty">データが見つかりません。data/candidates.json を確認してください。</div>';
+    document.getElementById('cards').innerHTML = '<div class="empty">データが見つかりません。data/candidates.json を確認してください。</div>';
   });
 </script>
 </body>
