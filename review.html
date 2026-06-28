@@ -1,131 +1,142 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>候補記事レビュー｜地域たすけあいマップ</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif; background:#FAFAF7; color:#1a1a1a; font-size:14px; }
-    header { background:#1B4332; color:white; padding:1rem 1.5rem; }
-    header h1 { font-size:16px; font-weight:700; }
-    header p { font-size:12px; opacity:.8; margin-top:2px; }
-    main { max-width:900px; margin:0 auto; padding:1.5rem 1rem; }
-    .stats { display:flex; gap:12px; margin-bottom:1.5rem; flex-wrap:wrap; }
-    .stat { background:white; border:1px solid #e0ddd5; border-radius:8px; padding:10px 16px; font-size:13px; }
-    .stat strong { font-size:20px; display:block; color:#1B4332; }
-    .filters { display:flex; gap:8px; margin-bottom:1rem; flex-wrap:wrap; }
-    .filter-btn { padding:6px 14px; border-radius:20px; border:1.5px solid #e0ddd5; background:white; font-size:13px; cursor:pointer; font-family:inherit; }
-    .filter-btn.active { background:#1B4332; color:white; border-color:#1B4332; }
-    .card { background:white; border:1px solid #e0ddd5; border-radius:10px; padding:1rem; margin-bottom:10px; border-left:4px solid #E8834A; }
-    .card.approved { border-left-color:#1B4332; }
-    .card.rejected { border-left-color:#ccc; opacity:.5; }
-    .card-title { font-size:14px; font-weight:700; margin-bottom:4px; }
-    .card-meta { font-size:12px; color:#888; margin-bottom:6px; }
-    .card-summary { font-size:12px; color:#555; line-height:1.7; margin-bottom:10px; }
-    .card-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .btn { padding:6px 16px; border-radius:16px; border:none; font-size:12px; cursor:pointer; font-family:inherit; }
-    .btn-open { background:#2980b9; color:white; }
-    .btn-approve { background:#1B4332; color:white; }
-    .btn-reject { background:#eee; color:#555; }
-    .badge { font-size:11px; padding:2px 8px; border-radius:10px; display:inline-block; margin-left:8px; vertical-align:middle; }
-    .badge-new { background:#FFF0E8; color:#E8834A; }
-    .badge-ok { background:#D8F3DC; color:#1B4332; }
-    .badge-ng { background:#eee; color:#888; }
-    .empty { text-align:center; color:#888; padding:3rem; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>候補記事レビュー｜地域たすけあいマップ</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;background:#FAFAF7;color:#1a1a1a;font-size:14px}
+.hdr{background:#1B4332;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px}
+.hdr h1{font-size:15px;font-weight:500}
+.hdr p{font-size:12px;opacity:.75;margin-left:auto}
+.body{max-width:860px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid #e0ddd5;border-radius:8px;padding:10px 14px}
+.stat .num{font-size:22px;font-weight:500;line-height:1}
+.stat .lbl{font-size:12px;color:#888;margin-top:3px}
+.filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.fb{padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:#555}
+.fb.on{background:#1B4332;color:#fff;border-color:#1B4332}
+.card{background:#fff;border:1px solid #e0ddd5;border-left:3px solid #E8834A;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:8px}
+.card.ok{border-left-color:#1B4332}
+.card.ng{border-left-color:#ccc;opacity:.5}
+.ttl{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge.new{background:#FFF0E8;color:#A0522D}
+.badge.ok{background:#D8F3DC;color:#1B4332}
+.badge.ng{background:#eee;color:#888}
+.meta{font-size:12px;color:#888;margin-bottom:6px}
+.summary{font-size:13px;color:#555;line-height:1.6;margin-bottom:10px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:#f5f5f5;font-size:12px;cursor:pointer;font-family:inherit;color:#333}
+.btn:hover{background:#eee}
+.btn.primary{background:#1B4332;color:#fff;border-color:#1B4332}
+.btn.primary:hover{background:#2D6A4F}
+.btn.danger{background:#fde8e8;color:#c0392b;border-color:#f5c6c6}
+.empty{text-align:center;color:#888;padding:40px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1B4332;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
 </head>
 <body>
-<header>
-  <h1>📋 候補記事レビュー画面</h1>
-  <p>自動巡回で見つかった記事を確認・承認してください</p>
-</header>
-<main>
+<div class="hdr">
+  <h1>📋 候補記事レビュー</h1>
+  <p>自動巡回で見つかった記事を確認してください</p>
+</div>
+
+<div class="body">
   <div class="stats">
-    <div class="stat"><strong id="cnt-all">0</strong>件 合計</div>
-    <div class="stat"><strong id="cnt-new" style="color:#E8834A">0</strong>件 未確認</div>
-    <div class="stat"><strong id="cnt-ok" style="color:#1B4332">0</strong>件 承認済み</div>
-    <div class="stat"><strong id="cnt-ng" style="color:#888">0</strong>件 却下</div>
+    <div class="stat"><div class="num" id="cnt-all">0</div><div class="lbl">合計</div></div>
+    <div class="stat"><div class="num" id="cnt-new" style="color:#E8834A">0</div><div class="lbl">未確認</div></div>
+    <div class="stat"><div class="num" id="cnt-ok" style="color:#1B4332">0</div><div class="lbl">承認済み</div></div>
+    <div class="stat"><div class="num" id="cnt-ng">0</div><div class="lbl">却下</div></div>
   </div>
+
   <div class="filters">
-    <button class="filter-btn active" onclick="setFilter('all',this)">全て</button>
-    <button class="filter-btn" onclick="setFilter('new',this)">未確認のみ</button>
-    <button class="filter-btn" onclick="setFilter('ok',this)">承認済み</button>
-    <button class="filter-btn" onclick="setFilter('ng',this)">却下</button>
+    <button class="fb on" id="fb-all" onclick="setF('all',this)">全て</button>
+    <button class="fb" id="fb-new" onclick="setF('new',this)">未確認のみ</button>
+    <button class="fb" id="fb-ok" onclick="setF('ok',this)">承認済み</button>
+    <button class="fb" id="fb-ng" onclick="setF('ng',this)">却下</button>
   </div>
+
   <div id="cards"></div>
-</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-let data = [];
-let filter = 'all';
+var items = [];
+var filt = 'all';
 
-async function init() {
-  try {
-    const r = await fetch('data/candidates.json');
-    data = await r.json();
-  } catch(e) { data = []; }
+function getStatus(id){ return localStorage.getItem('rv_'+id)||'new'; }
 
-  data = data.map(function(c) {
-    return Object.assign({}, c, { st: localStorage.getItem('st_'+c.id) || 'new' });
-  });
-  draw();
+function setStatus(id, st) {
+  localStorage.setItem('rv_'+id, st);
+  items = items.map(function(c){ return c.id===id ? Object.assign({},c,{st:st}) : c; });
+  if(st==='ok') {
+    showToast('✅ 承認しました');
+    filt = 'ok';
+    document.querySelectorAll('.fb').forEach(function(b){ b.classList.remove('on'); });
+    document.getElementById('fb-ok').classList.add('on');
+    draw();
+  } else {
+    draw();
+  }
 }
 
-function setFilter(f, btn) {
-  filter = f;
-  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  draw();
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 1500);
 }
 
-function approve(id) {
-  localStorage.setItem('st_'+id, 'ok');
-  data = data.map(function(c){ return c.id===id ? Object.assign({},c,{st:'ok'}) : c; });
-  draw();
+function openArticle(id) {
+  var item = items.find(function(c){ return c.id===id; });
+  if(item){ window.open(item.url,'_blank','noopener'); }
 }
 
-function reject(id) {
-  localStorage.setItem('st_'+id, 'ng');
-  data = data.map(function(c){ return c.id===id ? Object.assign({},c,{st:'ng'}) : c; });
+function setF(f, btn) {
+  filt = f;
+  document.querySelectorAll('.fb').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
   draw();
-}
-
-function openLink(id) {
-  var item = data.find(function(c){ return c.id===id; });
-  if (item) window.open(item.url, '_blank');
 }
 
 function draw() {
-  var list = filter==='all' ? data : data.filter(function(c){ return c.st===filter; });
-
-  document.getElementById('cnt-all').textContent = data.length;
-  document.getElementById('cnt-new').textContent = data.filter(function(c){ return c.st==='new'; }).length;
-  document.getElementById('cnt-ok').textContent = data.filter(function(c){ return c.st==='ok'; }).length;
-  document.getElementById('cnt-ng').textContent = data.filter(function(c){ return c.st==='ng'; }).length;
-
+  var list = filt==='all' ? items : items.filter(function(c){ return c.st===filt; });
+  document.getElementById('cnt-all').textContent = items.length;
+  document.getElementById('cnt-new').textContent = items.filter(function(c){ return c.st==='new'; }).length;
+  document.getElementById('cnt-ok').textContent = items.filter(function(c){ return c.st==='ok'; }).length;
+  document.getElementById('cnt-ng').textContent = items.filter(function(c){ return c.st==='ng'; }).length;
   var box = document.getElementById('cards');
-  if (!list.length) { box.innerHTML = '<div class="empty">該当する記事がありません</div>'; return; }
-
-  box.innerHTML = list.map(function(c) {
-    var cls = c.st==='ok' ? 'approved' : c.st==='ng' ? 'rejected' : '';
-    var badge = c.st==='ok'
-      ? '<span class="badge badge-ok">承認済み</span>'
-      : c.st==='ng'
-      ? '<span class="badge badge-ng">却下</span>'
-      : '<span class="badge badge-new">未確認</span>';
-    return '<div class="card '+cls+'">'
-      + '<div class="card-title">'+c.title+badge+'</div>'
-      + '<div class="card-meta">📰 '+c.source+' ／ 🔍 '+c.keyword+' ／ 📅 '+c.found_at+'</div>'
-      + '<div class="card-summary">'+c.summary+'</div>'
-      + '<div class="card-actions">'
-      + '<button class="btn btn-open" onclick="openLink(\''+c.id+'\')">🔗 記事を開く</button>'
-      + '<button class="btn btn-approve" onclick="approve(\''+c.id+'\')">✅ 承認</button>'
-      + '<button class="btn btn-reject" onclick="reject(\''+c.id+'\')">❌ 却下</button>'
-      + '</div></div>';
+  if(!list.length){ box.innerHTML='<div class="empty">該当する記事がありません</div>'; return; }
+  box.innerHTML = list.map(function(c){
+    var bc = c.st==='ok'?'ok':c.st==='ng'?'ng':'new';
+    var bt = c.st==='ok'?'承認済み':c.st==='ng'?'却下':'未確認';
+    return '<div class="card '+c.st+'">'
+      +'<div class="ttl">'+c.title+'<span class="badge '+bc+'">'+bt+'</span></div>'
+      +'<div class="meta">'+c.source+' &nbsp;|&nbsp; '+c.keyword+' &nbsp;|&nbsp; '+c.found_at+'</div>'
+      +'<div class="summary">'+c.summary+'</div>'
+      +'<div class="actions">'
+      +'<button class="btn" onclick="openArticle(\''+c.id+'\')">🔗 記事を開く</button>'
+      +'<button class="btn primary" onclick="setStatus(\''+c.id+'\',\'ok\')">✅ 承認</button>'
+      +'<button class="btn danger" onclick="setStatus(\''+c.id+'\',\'ng\')">❌ 却下</button>'
+      +'</div></div>';
   }).join('');
 }
 
-init();
+fetch('data/candidates.json')
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    items = data.map(function(c){ return Object.assign({},c,{st:getStatus(c.id)}); });
+    draw();
+  })
+  .catch(function(){
+    document.getElementById('cards').innerHTML='<div class="empty">データが見つかりません。data/candidates.json を確認してください。</div>';
+  });
 </script>
 </body>
 </html>
