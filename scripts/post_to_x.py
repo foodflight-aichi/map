@@ -1,11 +1,17 @@
 import json
 import os
 import random
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import tweepy
-
 MAP_URL = "https://foodflight-aichi.github.io/map/"
+
+# URL入りの投稿は料金が高い(1件約0.2ドル)ため、1日2回だけにする。
+# GitHub Actionsは数十分遅れることがあるので、時刻ではなく「時間帯」で判定する。
+#   朝: 07:30の実行 → 7:00〜8:59 / 夜: 19:00の実行 → 19:00〜20:29
+# (9:00の実行は9:00以降、20:30の実行は20:30以降に始まるので、混ざらない)
+URL_WINDOWS_JST = [(7 * 60, 9 * 60), (19 * 60, 20 * 60 + 30)]
 
 DATA_FILES = {
     "kodomo_shokudo": "data/spots.json",
@@ -22,6 +28,25 @@ CATEGORY_LABEL = {
 }
 
 LOG_PATH = Path("data/posted_log.json")
+
+URL_LIKE = re.compile(
+    r"https?://\S+|www\.\S+|\b[\w-]+(?:\.[\w-]+)*\.(?:com|jp|net|org|io|info|co)\b\S*",
+    re.IGNORECASE,
+)
+
+
+def current_minutes_jst():
+    """JSTの現在時刻を「0時からの分」で返す。テスト用に JST_TIME_OVERRIDE=HH:MM で上書きできる。"""
+    override = os.environ.get("JST_TIME_OVERRIDE")
+    if override:
+        h, m = override.split(":")
+        return int(h) * 60 + int(m)
+    now = datetime.now(timezone(timedelta(hours=9)))
+    return now.hour * 60 + now.minute
+
+
+def is_url_slot(minutes):
+    return any(start <= minutes < end for start, end in URL_WINDOWS_JST)
 
 
 def load_all_spots():
@@ -60,38 +85,49 @@ def pick_unposted_spot(all_spots, posted_keys):
     return random.choice(candidates) if candidates else None
 
 
-def build_spot_pickup_text(spot):
+def link_lines(with_url, lead):
+    """URL入りの時は地図のURL、URLなしの時はプロフィール誘導の1行を返す。"""
+    if with_url:
+        return [lead, MAP_URL]
+    return ["▶地図はプロフィールのリンクから"]
+
+
+def strip_urls(text):
+    """URLなし投稿にURLらしき文字列が混ざっていたら取り除く(高い料金区分になるため)。"""
+    cleaned = URL_LIKE.sub("", text)
+    return re.sub(r"[ \t]+\n", "\n", cleaned).strip()
+
+
+def build_spot_pickup_text(spot, with_url):
     label = CATEGORY_LABEL.get(spot["_category"], "拠点")
     name = spot.get("name", "")
     address = spot.get("address", spot.get("city", ""))
     schedule = spot.get("schedule", "")
     conditions = spot.get("conditions", "")
 
-    lines = [f"【拠点ピックアップ】", f"{address}の「{name}」さんをご紹介📍"]
+    lines = ["【拠点ピックアップ】", f"{address}の「{name}」さんをご紹介📍"]
     if schedule:
         lines.append(f"開催:{schedule}")
     if conditions:
         lines.append(conditions)
     lines.append("")
-    lines.append("▶詳細は地図で")
-    lines.append(MAP_URL)
+    lines.extend(link_lines(with_url, "▶詳細は地図で"))
     lines.append("")
     lines.append(f"#{label} #愛知")
     return "\n".join(lines)
 
 
-def build_stats_text(all_spots):
+def build_stats_text(all_spots, with_url):
     total = len(all_spots)
     lines = [
         f"【愛知県内{total}拠点を地図に掲載📍】",
         "こども食堂・フードバンク・炊き出し・フードドライブBOXを1つのマップで検索できます。",
         "利用は無料、誰でも使えます。",
         "",
-        "▶地図はこちら",
-        MAP_URL,
-        "",
-        "#こども食堂 #フードバンク #愛知 #地域たすけあいマップ",
     ]
+    lines.extend(link_lines(with_url, "▶地図はこちら"))
+    lines.append("")
+    lines.append("#こども食堂 #フードバンク #愛知 #地域たすけあいマップ")
     return "\n".join(lines)
 
 
@@ -108,22 +144,36 @@ def build_recruit_text():
     return "\n".join(lines)
 
 
-def build_intro_text():
+def build_intro_text(with_url):
     lines = [
         "愛知県内のこども食堂・フードバンク・炊き出し・フードドライブBOXを1つの地図で検索できるサービスです📍",
         "",
         "利用は無料、誰でも使えます。",
         "運営:フードフライト愛知",
         "",
-        "▶地図はこちら",
-        MAP_URL,
     ]
+    lines.extend(link_lines(with_url, "▶地図はこちら"))
     return "\n".join(lines)
 
 
-def choose_genre():
+def choose_genre(with_url):
     genres = ["spot_pickup"] * 6 + ["stats", "recruit", "intro"]
+    if with_url:
+        # URL入りの枠(高い)は、URLを使わない「団体募集」で無駄にしない
+        genres = [g for g in genres if g != "recruit"]
     return random.choice(genres)
+
+
+def build_post(genre, all_spots, posted_keys, with_url):
+    """(本文, 投稿済みに記録するキー or None) を返す。"""
+    if genre == "spot_pickup" and all_spots:
+        spot = pick_unposted_spot(all_spots, posted_keys)
+        return build_spot_pickup_text(spot, with_url), spot["_key"]
+    if genre == "stats":
+        return build_stats_text(all_spots, with_url), None
+    if genre == "recruit":
+        return build_recruit_text(), None
+    return build_intro_text(with_url), None
 
 
 def main():
@@ -131,18 +181,22 @@ def main():
     posted_log = load_posted_log()
     posted_keys = set(posted_log)
 
-    genre = choose_genre()
+    minutes = current_minutes_jst()
+    with_url = is_url_slot(minutes)
 
-    if genre == "spot_pickup" and all_spots:
-        spot = pick_unposted_spot(all_spots, posted_keys)
-        text = build_spot_pickup_text(spot)
-        posted_log.append(spot["_key"])
-    elif genre == "stats":
-        text = build_stats_text(all_spots)
-    elif genre == "recruit":
-        text = build_recruit_text()
-    else:
-        text = build_intro_text()
+    genre = choose_genre(with_url)
+    text, log_key = build_post(genre, all_spots, posted_keys, with_url)
+    if not with_url:
+        text = strip_urls(text)
+
+    print(f"JST {minutes // 60:02d}:{minutes % 60:02d} / URL入り: {with_url} / ジャンル: {genre}")
+
+    if os.environ.get("DRY_RUN") == "1":
+        print("--- DRY RUN(投稿しません) ---")
+        print(text)
+        return
+
+    import tweepy
 
     client = tweepy.Client(
         consumer_key=os.environ["X_API_KEY"],
@@ -151,11 +205,22 @@ def main():
         access_token_secret=os.environ["X_ACCESS_TOKEN_SECRET"],
     )
 
-    response = client.create_tweet(text=text)
+    try:
+        response = client.create_tweet(text=text)
+    except tweepy.Forbidden as e:
+        # 同じ文面の連投(重複)などで拒否された時は、拠点ピックアップに切り替えて1回だけ再試行
+        print("拒否されました。拠点ピックアップに切り替えて再試行します:", e)
+        text, log_key = build_post("spot_pickup", all_spots, posted_keys, with_url)
+        if not with_url:
+            text = strip_urls(text)
+        response = client.create_tweet(text=text)
+
     print("投稿しました:")
     print(text)
     print("response:", response.data)
 
+    if log_key:
+        posted_log.append(log_key)
     save_posted_log(posted_log)
 
 
